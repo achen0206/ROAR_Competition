@@ -1,6 +1,6 @@
 import math
 
-class Movement:
+class Lateral:
   def steering_angle(current_location, vehicle_orientation,waypoint):
     #calculates steering angle for the car
   
