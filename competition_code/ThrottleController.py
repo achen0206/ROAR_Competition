@@ -17,6 +17,18 @@ class ThrottleController:
       self.previous_speed = 1.0
       self.brake_ticks = 0
 
+      self.bezier_control_points = np.array([
+            [0, 0],
+            [100, 50],
+            [200, 50],
+            [300, 0]
+        ]) #Need to figure out these sections somehow rip
+        self.current_t = 0.0  # Parameter along Bezier curve [0,1]
+        self.dt = 0.1         # Time step between calls in seconds
+
+        self.current_speed = 0.0  # current speed (m/s)
+
+    
       self.brake_test_counter = 0
       self.brake_test_in_progress = False
 
