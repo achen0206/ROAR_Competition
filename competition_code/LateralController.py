@@ -12,4 +12,5 @@ class Lateral:
     local_x = dx*math.cos(-vehicle_orientation) - dy*math.sin(-vehicle_orientation)
     local_y = dy*math.sin(-vehicle_orientation) + dx*math.cos(-vehicle_orientation)
 
-  #Find algo to calculate steering_angle
+    
+  #Find algo to calculate steering_angle (Pure Pursuit)
