@@ -27,5 +27,40 @@ class ThrottleController:
 
   def run()
 
+  
+  
+  def get_radius(self, wp: [roar_py_interface.RoarPyWaypoint]):
+      """Returns the radius of a curve given 3 waypoints using the Menger Curvature Formula
+
+        Args:
+            wp ([roar_py_interface.RoarPyWaypoint]): A list of 3 RoarPyWaypoints
+
+        Returns:
+            float: The radius of the curve made by the 3 given waypoints
+        """
+
+      point1 = (wp[0].location[0], wp[0].location[1])
+      point2 = (wp[1].location[0], wp[1].location[1])
+      point3 = (wp[2].location[0], wp[2].location[1])
+
+        # Calculating length of all three sides
+      len_side_1 = round(math.dist(point1, point2), 3)
+      len_side_2 = round(math.dist(point2, point3), 3)
+      len_side_3 = round(math.dist(point1, point3), 3)
+
+      small_num = 2
+
+      if len_side_1 < small_num or len_side_2 < small_num or len_side_3 < small_num:
+          return self.max_radius
+        # sp is semi-perimeter
+      sp = (len_side_1 + len_side_2 + len_side_3) / 2
+        # Calculating area using Herons formula
+      area_squared = sp * (sp - len_side_1) * (sp - len_side_2) * (sp - len_side_3)
+      if area_squared < small_num:
+          return self.max_radius
+        # Calculating curvature using Menger curvature formula
+      radius = (len_side_1 * len_side_2 * len_side_3) / (4 * math.sqrt(area_squared))
+      return radius
+
 
   
