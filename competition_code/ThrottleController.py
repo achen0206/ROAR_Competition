@@ -69,10 +69,53 @@ class ThrottleController:
 
       return radius
 
+
+
+    def get_next_interesting_waypoints(self, current_location, more_waypoints):
+        """Returns a list of waypoints that are approximately as far as specified in intended_target_distance from the current location
+
+        Args:
+            current_location (roar_py_interface.RoarPyWaypoint): The current location of the car
+            more_waypoints ([roar_py_interface.RoarPyWaypoint]): A list of waypoints
+
+        Returns:
+            [roar_py_interface.RoarPyWaypoint]: A list of waypoints within specified distances of the car
+        """
+        # Returns a list of waypoints that are approximately as far as the given in intended_target_distance from the current location
+
+        # return a list of points with distances approximately as given
+        # in intended_target_distance[] from the current location.
+        points = []
+        dist = []  # for debugging
+        start = roar_py_interface.RoarPyWaypoint(
+            current_location, np.ndarray([0, 0, 0]), 0.0
+        )
+        # start = self.agent.vehicle.transform
+        points.append(start)
+        curr_dist = 0
+        num_points = 0
+        for p in more_waypoints:
+            end = p
+            num_points += 1
+            # print("start " + str(start) + "\n- - - - -\n")
+            # print("end " + str(end) +     "\n- - - - -\n")
+            curr_dist += distance_p_to_p(start, end)
+            # curr_dist += start.location.distance(end.location)
+            if curr_dist > self.intended_target_distance[len(points)]:
+                self.target_distance[len(points)] = curr_dist
+                points.append(end)
+                dist.append(curr_dist)
+            start = end
+            if len(points) >= len(self.target_distance):
+                break
+
+        self.dprint("wp dist " + str(dist))
+        return points
+
     
   
   def max_acceleration(v: float, P_max: float, mu: float, m: float, p, C, A, g=9.8):
-  
+    
   def run(
     +
     , ):
