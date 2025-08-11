@@ -17,12 +17,7 @@ class ThrottleController:
       self.previous_speed = 1.0
       self.brake_ticks = 0
 
-      self.bezier_control_points = np.array([
-            [0, 0],
-            [100, 50],
-            [200, 50],
-            [300, 0]
-        ]) #Need to figure out these sections somehow rip
+      
         self.current_t = 0.0  # Parameter along Bezier curve [0,1]
         self.dt = 0.1         # Time step between calls in seconds
 
@@ -37,12 +32,14 @@ class ThrottleController:
   def cubic_bezier_curve(t: float, P0: np.ndarray, P1: np.ndarray, P2: np.ndarray, P3: np.ndarray) -> np.ndarray:
     return ((1 - t)3 * P0 + 3 * (1 - t)2 * t * P1 + 3 * (1 - t) * t2 * P2 + t3 * P)
 
-  def run():
-
+  
+  def curvature(t: float, P0: np.ndarray, P1: np.ndarray, P2: np.ndarray, P3: np.ndarray):
+    curve = cubic_bezier_curve(t, P0, P1, P2, P3)
+    
   
   def max_acceleration(v: float, P_max: float, mu: float, m: float, p, C, A, g=9.8):
-    F_drag = 0.5 * p * C * A * v ** 2
-    return max(0, min(mu * g, 1 / m * (P_max/v - F_drag)))
-
+  
+  def run(velocity, ):
+    
 
   
