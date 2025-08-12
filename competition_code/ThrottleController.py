@@ -3,6 +3,11 @@ import math
 import roar_py_interface
 from SpeedData import SpeedData
 
+def distance_p_to_p(
+    p1: roar_py_interface.RoarPyWaypoint, p2: roar_py_interface.RoarPyWaypoint
+):
+    return np.linalg.norm(p2.location[:2] - p1.location[:2])
+
 class ThrottleController:
 
   def __init__(self):
@@ -343,6 +348,8 @@ class ThrottleController:
             mu = 3.3
         if current_section == 9:
             mu = 2.1
+
+        target_speed = 
 
 
 
