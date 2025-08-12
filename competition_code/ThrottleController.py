@@ -28,11 +28,7 @@ class ThrottleController:
       self.brake_test_in_progress = False
 
     
-
-  def cubic_bezier_curve(t: float, P0: np.ndarray, P1: np.ndarray, P2: np.ndarray, P3: np.ndarray) -> np.ndarray:
-    return ((1 - t)3 * P0 + 3 * (1 - t)2 * t * P1 + 3 * (1 - t) * t2 * P2 + t3 * P)
-
-    def get_throttle_and_brake(
+  def get_throttle_and_brake(
         self, current_location, current_speed, current_section, waypoints
     ):
         """
@@ -103,8 +99,8 @@ class ThrottleController:
         throttle, brake = self.speed_data_to_throttle_and_brake(update)
         self.dprint("--- throt " + str(throttle) + " brake " + str(brake) + "---")
         return throttle, brake
-
-    def speed_data_to_throttle_and_brake(self, speed_data: SpeedData):
+      
+  def speed_data_to_throttle_and_brake(self, speed_data: SpeedData):
         """
         Converts speed data into throttle and brake values
         """
@@ -250,7 +246,7 @@ class ThrottleController:
                 return throttle_to_maintain, 0
 
     # used to detect when speed is dropping due to brakes applied earlier. speed delta has a steep negative slope.
-    def isSpeedDroppingFast(self, percent_change_per_tick: float, current_speed):
+  def isSpeedDroppingFast(self, percent_change_per_tick: float, current_speed):
         """
         Detects if the speed of the car is dropping quickly.
         Returns true if the speed is dropping fast
@@ -261,7 +257,7 @@ class ThrottleController:
         return percent_speed_change < (-percent_change_per_tick / 2)
 
     # find speed_data with smallest recommended speed
-    def select_speed(self, speed_data: [SpeedData]):
+  def select_speed(self, speed_data: [SpeedData]):
         """
         Selects the smallest speed out of the speeds provided
         """
@@ -277,7 +273,7 @@ class ThrottleController:
         else:
             return speed_data[0]
 
-    def get_throttle_to_maintain_speed(self, current_speed: float):
+  def get_throttle_to_maintain_speed(self, current_speed: float):
         """
         Returns a throttle value to maintain the current speed
         """
@@ -321,10 +317,36 @@ class ThrottleController:
       radius = (len_side_1 * len_side_2 * len_side_3) / (4 * math.sqrt(area_squared))
 
       return radius
+    def get_target_speed(self, radius: float, current_section: int):
+        """Returns a target speed based on the radius of the turn and the section it is in
+
+        Args:
+            radius (float): The calculated radius of the turn
+            current_section (int): The current section of the track the car is in
+
+        Returns:
+            float: The maximum speed the car can go around the corner at
+        """
+
+        mu = 2.75
+
+        if radius >= self.max_radius:
+            return self.max_speed
+
+        if current_section == 2:
+            mu = 3.35
+        if current_section == 3:
+            mu = 3.3
+        if current_section == 4:
+            mu = 2.85
+        if current_section == 6:
+            mu = 3.3
+        if current_section == 9:
+            mu = 2.1
 
 
 
-    def get_next_interesting_waypoints(self, current_location, more_waypoints):
+  def get_next_interesting_waypoints(self, current_location, more_waypoints):
         """Returns a list of waypoints that are approximately as far as specified in intended_target_distance from the current location
 
         Args:
