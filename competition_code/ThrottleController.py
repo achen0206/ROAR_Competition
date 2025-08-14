@@ -250,7 +250,27 @@ class ThrottleController:
         """
         throttle = 0.75 + current_speed / 500
         return throttle
-    #Sachit is very very gay
+
+
+  def speed_for_turn(
+        self, distance: float, target_speed: float, current_speed: float
+    ):
+        """Generates a SpeedData object with the target speed for the far
+
+        Args:
+            distance (float): Distance from the start of the curve
+            target_speed (float): Target speed of the curve
+            current_speed (float): Current speed of the car
+
+        Returns:
+            SpeedData: A SpeedData object containing the distance to the corner, current speed, target speed, and max speed
+        """
+        # Takes in a target speed and distance and produces a speed that the car should target. Returns a SpeedData object
+
+        d = (1 / 675) * (target_speed**2) + distance
+        max_speed = math.sqrt(825 * d)
+        return SpeedData(distance, current_speed, target_speed, max_speed)
+
 
   def get_radius(self, wp: [roar_py_interface.RoarPyWaypoint]):
         """Returns the radius of a curve given 3 waypoints using the Menger Curvature Formula
