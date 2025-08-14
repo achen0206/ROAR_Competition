@@ -23,14 +23,14 @@ class ThrottleController:
     self.brake_ticks = 0
 
       
-      self.current_t = 0.0  # Parameter along Bezier curve [0,1]
-      self.dt = 0.1         # Time step between calls in seconds
+    self.current_t = 0.0  # Parameter along Bezier curve [0,1]
+    self.dt = 0.1         # Time step between calls in seconds
 
-      self.current_speed = 0.0  # current speed (m/s)
+    self.current_speed = 0.0  # current speed (m/s)
 
     
-      self.brake_test_counter = 0
-      self.brake_test_in_progress = False
+    self.brake_test_counter = 0
+    self.brake_test_in_progress = False
 
     
   def get_throttle_and_brake(
