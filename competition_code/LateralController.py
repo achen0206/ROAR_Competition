@@ -12,6 +12,10 @@ class Lateral:
     local_x = dx*math.cos(-vehicle_orientation) - dy*math.sin(-vehicle_orientation)
     local_y = dy*math.sin(-vehicle_orientation) + dx*math.cos(-vehicle_orientation)
 
+
+    ld = math.sqrt(local_x**2 + local_y**2)
+
+
    if ld == 0:
         return 0.0
 
