@@ -32,6 +32,31 @@ class ThrottleController:
     self.brake_test_counter = 0
     self.brake_test_in_progress = False
 
+    #this is the function that is going to be run by the main
+    def run(
+        self, waypoints, current_location, current_speed, current_section
+    ) -> (float, float, int):
+        self.tick_counter += 1
+        throttle, brake = self.get_throttle_and_brake(
+            current_location, current_speed, current_section, waypoints
+        )
+        # gear = max(1, (int)(math.log(current_speed + 0.00001, 5)))
+        gear = max(1, int(current_speed / 60))
+        if throttle < 0:
+            gear = -1
+
+        # self.dprint("--- " + str(throttle) + " " + str(brake)
+        #             + " steer " + str(steering)
+        #             + "     loc x,z" + str(self.agent.vehicle.transform.location.x)
+        #             + " " + str(self.agent.vehicle.transform.location.z))
+
+        self.previous_speed = current_speed
+        if self.brake_ticks > 0 and brake > 0:
+            self.brake_ticks -= 1
+
+        # throttle = 0.05 * (100 - current_speed)
+        return throttle, brake, gear
+
     
   def get_throttle_and_brake(
         self, current_location, current_speed, current_section, waypoints
