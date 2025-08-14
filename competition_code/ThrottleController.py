@@ -106,7 +106,15 @@ class ThrottleController:
         return throttle, brake
       
   def speed_data_to_throttle_and_brake(self, speed_data: SpeedData):
-       
+    #write code to find the target speed for a curve 
+    update = 0
+    
+
+    #converts target speed to brake and throttle values
+    throttle, brake = self.speed_data_to_throttle_and_brake(update)
+    self.dprint("--- throt " + str(throttle) + " brake " + str(brake) + "---")
+    return throttle, brake
+
 
     # used to detect when speed is dropping due to brakes applied earlier. speed delta has a steep negative slope.
   def isSpeedDroppingFast(self, percent_change_per_tick: float, current_speed):
