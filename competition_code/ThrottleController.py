@@ -111,7 +111,7 @@ class ThrottleController:
     
 
     #converts target speed to brake and throttle values
-    throttle, brake = self.speed_data_to_throttle_and_brake(update)
+    throttle, brake = self.get_speed_data_to_throttle_and_brake(update)
     self.dprint("--- throt " + str(throttle) + " brake " + str(brake) + "---")
     return throttle, brake
 
