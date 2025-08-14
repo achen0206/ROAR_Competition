@@ -150,7 +150,7 @@ class ThrottleController:
         """
         throttle = 0.75 + current_speed / 500
         return throttle
-
+    #Sachit is very very gay
 
   def get_radius(self, wp: [roar_py_interface.RoarPyWaypoint]):
         """Returns the radius of a curve given 3 waypoints using the Menger Curvature Formula
