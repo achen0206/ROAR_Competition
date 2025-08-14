@@ -40,80 +40,155 @@ class ThrottleController:
         Returns throttle and brake values based off the car's current location and the radius of the approaching turn
         """
 
-        nextWaypoint = self.get_next_interesting_waypoints(current_location, waypoints)
-        r1 = self.get_radius(nextWaypoint[self.close_index : self.close_index + 3])
-        r2 = self.get_radius(nextWaypoint[self.mid_index : self.mid_index + 3])
-        r3 = self.get_radius(nextWaypoint[self.far_index : self.far_index + 3])
-
-        target_speed1 = self.get_target_speed(r1, current_section)
-        target_speed2 = self.get_target_speed(r2, current_section)
-        target_speed3 = self.get_target_speed(r3, current_section)
-
-        close_distance = self.target_distance[self.close_index] + 3
-        mid_distance = self.target_distance[self.mid_index]
-        far_distance = self.target_distance[self.far_index]
-        speed_data = []
-        speed_data.append(
-            self.speed_for_turn(close_distance, target_speed1, current_speed)
-        )
-        speed_data.append(
-            self.speed_for_turn(mid_distance, target_speed2, current_speed)
-        )
-        speed_data.append(
-            self.speed_for_turn(far_distance, target_speed3, current_speed)
-        )
-
-        if current_speed > 100:
-            # at high speed use larger spacing between points to look further ahead and detect wide turns.
-            if current_section != 9:
-                r4 = self.get_radius(
-                    [
-                        nextWaypoint[self.mid_index],
-                        nextWaypoint[self.mid_index + 2],
-                        nextWaypoint[self.mid_index + 4],
-                    ]
-                )
-                target_speed4 = self.get_target_speed(r4, current_section)
-                speed_data.append(
-                    self.speed_for_turn(close_distance, target_speed4, current_speed)
-                )
-
-            r5 = self.get_radius(
-                [
-                    nextWaypoint[self.close_index],
-                    nextWaypoint[self.close_index + 3],
-                    nextWaypoint[self.close_index + 6],
-                ]
-            )
-            target_speed5 = self.get_target_speed(r5, current_section)
-            speed_data.append(
-                self.speed_for_turn(close_distance, target_speed5, current_speed)
-            )
-
-        update = self.select_speed(speed_data)
-
-        self.print_speed(
-            " -- SPEED: ",
-            speed_data[0].recommended_speed_now,
-            speed_data[1].recommended_speed_now,
-            speed_data[2].recommended_speed_now,
-            (0 if len(speed_data) < 4 else speed_data[3].recommended_speed_now),
-            current_speed,
-        )
-
+        ### SACHIT WRITE THE CODE HERE
         throttle, brake = self.speed_data_to_throttle_and_brake(update)
         self.dprint("--- throt " + str(throttle) + " brake " + str(brake) + "---")
         return throttle, brake
       
   def speed_data_to_throttle_and_brake(self, speed_data: SpeedData):
-    #write code to find the target speed for a curve 
-    update = 0
-    
+     """
+        Converts speed data into throttle and brake values
+        """
 
-    #converts target speed to brake and throttle values
-    throttle, brake = self.get_speed_data_to_throttle_and_brake(update)
-    self.dprint("--- throt " + str(throttle) + " brake " + str(brake) + "---")
-    return throttle, brake
+        # self.dprint("dist=" + str(round(speed_data.distance_to_section)) + " cs=" + str(round(speed_data.current_speed, 2))
+        #             + " ts= " + str(round(speed_data.target_speed_at_distance, 2))
+        #             + " maxs= " + str(round(speed_data.recommended_speed_now, 2)) + " pcnt= " + str(round(percent_of_max, 2)))
+
+        percent_of_max = speed_data.current_speed / speed_data.recommended_speed_now
+        avg_speed_change_per_tick = 2.4  # Speed decrease in kph per tick
+        percent_change_per_tick = 0.075  # speed drop for one time-tick of braking
+        true_percent_change_per_tick = round(
+            avg_speed_change_per_tick / (speed_data.current_speed + 0.001), 5
+        )
+        speed_up_threshold = 0.9
+        throttle_decrease_multiple = 0.7
+        throttle_increase_multiple = 1.25
+        brake_threshold_multiplier = 1.0
+        percent_speed_change = (speed_data.current_speed - self.previous_speed) / (
+            self.previous_speed + 0.0001
+        )  # avoid division by zero
+        speed_change = round(speed_data.current_speed - self.previous_speed, 3)
+
+        if percent_of_max > 1:
+            # Consider slowing down
+            # if speed_data.current_speed > 200:  # Brake earlier at higher speeds
+            #     brake_threshold_multiplier = 0.9
+
+            if percent_of_max > 1 + (
+                brake_threshold_multiplier * true_percent_change_per_tick
+            ):
+                if self.brake_ticks > 0:
+                    self.dprint(
+                        "tb: tick "
+                        + str(self.tick_counter)
+                        + " brake: counter "
+                        + str(self.brake_ticks)
+                    )
+                    return -1, 1
+
+                # if speed is not decreasing fast, hit the brake.
+                if self.brake_ticks <= 0 and speed_change < 2.5:
+                    # start braking, and set for how many ticks to brake
+                    self.brake_ticks = (
+                        round(
+                            (
+                                speed_data.current_speed
+                                - speed_data.recommended_speed_now
+                            )
+                            / 3
+                        )
+                    )
+                    # self.brake_ticks = 1, or (1 or 2 but not more)
+                    self.dprint(
+                        "tb: tick "
+                        + str(self.tick_counter)
+                        + " brake: initiate counter "
+                        + str(self.brake_ticks)
+                    )
+                    return -1, 1
+
+                else:
+                    # speed is already dropping fast, ok to throttle because the effect of throttle is delayed
+                    self.dprint(
+                        "tb: tick "
+                        + str(self.tick_counter)
+                        + " brake: throttle early1: sp_ch="
+                        + str(percent_speed_change)
+                    )
+                    self.brake_ticks = 0  # done slowing down. clear brake_ticks
+                    return 1, 0
+            else:
+                if speed_change >= 2.5:
+                    # speed is already dropping fast, ok to throttle because the effect of throttle is delayed
+                    self.dprint(
+                        "tb: tick "
+                        + str(self.tick_counter)
+                        + " brake: throttle early2: sp_ch="
+                        + str(percent_speed_change)
+                    )
+                    self.brake_ticks = 0  # done slowing down. clear brake_ticks
+                    return 1, 0
+
+                # TODO: Try to get rid of coasting. Unnecessary idle time that could be spent speeding up or slowing down
+                throttle_to_maintain = self.get_throttle_to_maintain_speed(
+                    speed_data.current_speed
+                )
+
+                if percent_of_max > 1.02 or percent_speed_change > (
+                    -true_percent_change_per_tick / 2
+                ):
+                    self.dprint(
+                        "tb: tick "
+                        + str(self.tick_counter)
+                        + " brake: throttle down: sp_ch="
+                        + str(percent_speed_change)
+                    )
+                    return (
+                        throttle_to_maintain * throttle_decrease_multiple,
+                        0,
+                    )  # coast, to slow down
+                else:
+                    # self.dprint("tb: tick " + str(self.tick_counter) + " brake: throttle maintain: sp_ch=" + str(percent_speed_change))
+                    return throttle_to_maintain, 0
+        else:
+            self.brake_ticks = 0  # done slowing down. clear brake_ticks
+            # Speed up
+            if speed_change >= 2.5:
+                # speed is dropping fast, ok to throttle because the effect of throttle is delayed
+                self.dprint(
+                    "tb: tick "
+                    + str(self.tick_counter)
+                    + " throttle: full speed drop: sp_ch="
+                    + str(percent_speed_change)
+                )
+                return 1, 0
+            if percent_of_max < speed_up_threshold:
+                self.dprint(
+                    "tb: tick "
+                    + str(self.tick_counter)
+                    + " throttle full: p_max="
+                    + str(percent_of_max)
+                )
+                return 1, 0
+            throttle_to_maintain = self.get_throttle_to_maintain_speed(
+                speed_data.current_speed
+            )
+            if percent_of_max < 0.98 or true_percent_change_per_tick < -0.01:
+                self.dprint(
+                    "tb: tick "
+                    + str(self.tick_counter)
+                    + " throttle up: sp_ch="
+                    + str(percent_speed_change)
+                )
+                return throttle_to_maintain * throttle_increase_multiple, 0
+            else:
+                self.dprint(
+                    "tb: tick "
+                    + str(self.tick_counter)
+                    + " throttle maintain: sp_ch="
+                    + str(percent_speed_change)
+                )
+                return throttle_to_maintain, 0
 
 
     # used to detect when speed is dropping due to brakes applied earlier. speed delta has a steep negative slope.
