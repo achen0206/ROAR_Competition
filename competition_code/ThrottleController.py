@@ -58,8 +58,10 @@ class ThrottleController:
   def get_throttle_and_brake(
         self, current_location, current_speed, current_section, waypoints
     ):
+        nextWaypoint = self.get_next_interesting_waypoints(current_location, waypoints)
+        target_speed = self.get_target_speed(self.get_radius(nextWaypoint[self.close_index : self.close_index + 3]), current_section)
         
-        
+        ### UNFINISHED
         
         throttle, brake = self.speed_data_to_throttle_and_brake(speed)
         return throttle, brake
@@ -209,17 +211,6 @@ class ThrottleController:
                 )
                 return throttle_to_maintain, 0
 
-
-    # used to detect when speed is dropping due to brakes applied earlier. speed delta has a steep negative slope.
-  def isSpeedDroppingFast(self, percent_change_per_tick: float, current_speed):
-        """
-        Detects if the speed of the car is dropping quickly.
-        Returns true if the speed is dropping fast
-        """
-        percent_speed_change = (current_speed - self.previous_speed) / (
-            self.previous_speed + 0.0001
-        )  # avoid division by zero
-        return percent_speed_change < (-percent_change_per_tick / 2)
 
     # find speed_data with smallest recommended speed
   def select_speed(self, speed_data: [SpeedData]):
