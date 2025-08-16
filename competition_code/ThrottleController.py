@@ -64,10 +64,8 @@ class ThrottleController:
         """
         Returns throttle and brake values based off the car's current location and the radius of the approaching turn
         """
-
-        ### SACHIT WRITE THE CODE HERE
-        throttle, brake = self.speed_data_to_throttle_and_brake(update)
-        self.dprint("--- throt " + str(throttle) + " brake " + str(brake) + "---")
+        speed
+        throttle, brake = self.speed_data_to_throttle_and_brake(speed)
         return throttle, brake
       
   def speed_data_to_throttle_and_brake(self, speed_data: SpeedData):
