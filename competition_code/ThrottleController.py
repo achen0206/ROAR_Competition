@@ -21,10 +21,7 @@ class ThrottleController:
     self.tick_counter = 0
     self.previous_speed = 1.0
     self.brake_ticks = 0
-
-      
-    self.current_t = 0.0  # Parameter along Bezier curve [0,1]
-    self.dt = 0.1         # Time step between calls in seconds
+    self.current_radius = 0
 
     self.current_speed = 0.0  # current speed (m/s)
 
@@ -61,10 +58,9 @@ class ThrottleController:
   def get_throttle_and_brake(
         self, current_location, current_speed, current_section, waypoints
     ):
-        """
-        Returns throttle and brake values based off the car's current location and the radius of the approaching turn
-        """
-        speed
+        
+        
+        
         throttle, brake = self.speed_data_to_throttle_and_brake(speed)
         return throttle, brake
       
