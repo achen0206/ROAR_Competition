@@ -1,7 +1,8 @@
 import math
+import numpy as np
 
 class Lateral:
-  def steering_angle(current_location, vehicle_orientation,waypoint):
+  def steering_angle(current_location, vehicle_orientation, waypoint):
     #calculates steering angle for the car
   
     #Find distance between vehicle and waypoint
@@ -9,22 +10,10 @@ class Lateral:
     dy = waypoint[1] - current_location[1]
   
     #Convert to local coordinates
-    local_x = dx*math.cos(-vehicle_orientation) - dy*math.sin(-vehicle_orientation)
-    local_y = dy*math.sin(-vehicle_orientation) + dx*math.cos(-vehicle_orientation)
+    local_x = dx*math.cos(-vehicle_orientation[2]) - dy*math.sin(-vehicle_orientation[2])
+    local_y = dy*math.sin(-vehicle_orientation[2]) + dx*math.cos(-vehicle_orientation[2])
 
-
-    ld = math.sqrt(local_x**2 + local_y**2)
-
-
-   if ld == 0:
-        return 0.0
-
-    
-    alpha = math.atan2(local_y, local_x)
-
-    steering = math.atan2(2 *4.7 * math.sin(alpha), ld)
-
-    return steering
-
+    return (-1.5*np.arctan(4.7* 2*local_y/(np.linalg.norm(waypoint.location - vehicle_location) ** 2)))
+  
     
   #Find algo to calculate steering_angle (Pure Pursuit)
