@@ -1,35 +1,39 @@
 import numpy as np
 import math
-import roar_py_interface
+from collections import deque
 from SpeedData import SpeedData
+import roar_py_interface
+
 
 def distance_p_to_p(
     p1: roar_py_interface.RoarPyWaypoint, p2: roar_py_interface.RoarPyWaypoint
 ):
     return np.linalg.norm(p2.location[:2] - p1.location[:2])
 
+
 class ThrottleController:
+    display_debug = False
+    debug_strings = deque(maxlen=1000)
 
-  def __init__(self):
-    self.max_radius = 10000
-    self.max_speed = 300
-    self.intended_target_distance = [0, 30, 60, 90, 120, 140, 170]
-    self.target_distance = [0, 30, 60, 90, 120, 150, 180]
-    self.close_index = 0
-    self.mid_index = 1
-    self.far_index = 2
-    self.tick_counter = 0
-    self.previous_speed = 1.0
-    self.brake_ticks = 0
-    self.current_radius = 0
+    def __init__(self):
+        self.max_radius = 10000
+        self.max_speed = 300
+        self.intended_target_distance = [0, 30, 60, 90, 120, 140, 170]
+        self.target_distance = [0, 30, 60, 90, 120, 150, 180]
+        self.close_index = 0
+        self.mid_index = 1
+        self.far_index = 2
+        self.tick_counter = 0
+        self.previous_speed = 1.0
+        self.brake_ticks = 0
 
-    self.current_speed = 0.0  # current speed (m/s)
+        # for testing how fast the car stops
+        self.brake_test_counter = 0
+        self.brake_test_in_progress = False
 
-    
-    self.brake_test_counter = 0
-    self.brake_test_in_progress = False
+    def __del__(self):
+        print("done")
 
-    #this is the function that is going to be run by the main
     def run(
         self, waypoints, current_location, current_speed, current_section
     ) -> (float, float, int):
@@ -54,20 +58,80 @@ class ThrottleController:
         # throttle = 0.05 * (100 - current_speed)
         return throttle, brake, gear
 
-    
-  def get_throttle_and_brake(
+    def get_throttle_and_brake(
         self, current_location, current_speed, current_section, waypoints
     ):
+        """
+        Returns throttle and brake values based off the car's current location and the radius of the approaching turn
+        """
+
         nextWaypoint = self.get_next_interesting_waypoints(current_location, waypoints)
-        target_speed = self.get_target_speed(self.get_radius(nextWaypoint[self.close_index : self.close_index + 3]), current_section)
-        
-        ### UNFINISHED
-        
-        throttle, brake = self.speed_data_to_throttle_and_brake(speed)
+        r1 = self.get_radius(nextWaypoint[self.close_index : self.close_index + 3])
+        r2 = self.get_radius(nextWaypoint[self.mid_index : self.mid_index + 3])
+        r3 = self.get_radius(nextWaypoint[self.far_index : self.far_index + 3])
+
+        target_speed1 = self.get_target_speed(r1, current_section)
+        target_speed2 = self.get_target_speed(r2, current_section)
+        target_speed3 = self.get_target_speed(r3, current_section)
+
+        close_distance = self.target_distance[self.close_index] + 3
+        mid_distance = self.target_distance[self.mid_index]
+        far_distance = self.target_distance[self.far_index]
+        speed_data = []
+        speed_data.append(
+            self.speed_for_turn(close_distance, target_speed1, current_speed)
+        )
+        speed_data.append(
+            self.speed_for_turn(mid_distance, target_speed2, current_speed)
+        )
+        speed_data.append(
+            self.speed_for_turn(far_distance, target_speed3, current_speed)
+        )
+
+        if current_speed > 100:
+            # at high speed use larger spacing between points to look further ahead and detect wide turns.
+            if current_section != 9:
+                r4 = self.get_radius(
+                    [
+                        nextWaypoint[self.mid_index],
+                        nextWaypoint[self.mid_index + 2],
+                        nextWaypoint[self.mid_index + 4],
+                    ]
+                )
+                target_speed4 = self.get_target_speed(r4, current_section)
+                speed_data.append(
+                    self.speed_for_turn(close_distance, target_speed4, current_speed)
+                )
+
+            r5 = self.get_radius(
+                [
+                    nextWaypoint[self.close_index],
+                    nextWaypoint[self.close_index + 3],
+                    nextWaypoint[self.close_index + 6],
+                ]
+            )
+            target_speed5 = self.get_target_speed(r5, current_section)
+            speed_data.append(
+                self.speed_for_turn(close_distance, target_speed5, current_speed)
+            )
+
+        update = self.select_speed(speed_data)
+
+        self.print_speed(
+            " -- SPEED: ",
+            speed_data[0].recommended_speed_now,
+            speed_data[1].recommended_speed_now,
+            speed_data[2].recommended_speed_now,
+            (0 if len(speed_data) < 4 else speed_data[3].recommended_speed_now),
+            current_speed,
+        )
+
+        throttle, brake = self.speed_data_to_throttle_and_brake(update)
+        self.dprint("--- throt " + str(throttle) + " brake " + str(brake) + "---")
         return throttle, brake
-      
-  def speed_data_to_throttle_and_brake(self, speed_data: SpeedData):
-     """
+
+    def speed_data_to_throttle_and_brake(self, speed_data: SpeedData):
+        """
         Converts speed data into throttle and brake values
         """
 
@@ -211,9 +275,19 @@ class ThrottleController:
                 )
                 return throttle_to_maintain, 0
 
+    # used to detect when speed is dropping due to brakes applied earlier. speed delta has a steep negative slope.
+    def isSpeedDroppingFast(self, percent_change_per_tick: float, current_speed):
+        """
+        Detects if the speed of the car is dropping quickly.
+        Returns true if the speed is dropping fast
+        """
+        percent_speed_change = (current_speed - self.previous_speed) / (
+            self.previous_speed + 0.0001
+        )  # avoid division by zero
+        return percent_speed_change < (-percent_change_per_tick / 2)
 
     # find speed_data with smallest recommended speed
-  def select_speed(self, speed_data: [SpeedData]):
+    def select_speed(self, speed_data: [SpeedData]):
         """
         Selects the smallest speed out of the speeds provided
         """
@@ -229,15 +303,14 @@ class ThrottleController:
         else:
             return speed_data[0]
 
-  def get_throttle_to_maintain_speed(self, current_speed: float):
+    def get_throttle_to_maintain_speed(self, current_speed: float):
         """
         Returns a throttle value to maintain the current speed
         """
         throttle = 0.75 + current_speed / 500
         return throttle
 
-
-  def speed_for_turn(
+    def speed_for_turn(
         self, distance: float, target_speed: float, current_speed: float
     ):
         """Generates a SpeedData object with the target speed for the far
@@ -256,76 +329,7 @@ class ThrottleController:
         max_speed = math.sqrt(825 * d)
         return SpeedData(distance, current_speed, target_speed, max_speed)
 
-
-  def get_radius(self, wp: [roar_py_interface.RoarPyWaypoint]):
-        """Returns the radius of a curve given 3 waypoints using the Menger Curvature Formula
-
-        Args:
-            wp ([roar_py_interface.RoarPyWaypoint]): A list of 3 RoarPyWaypoints
-
-        Returns:
-            float: The radius of the curve made by the 3 given waypoints
-        """
-
-      point1 = (wp[0].location[0], wp[0].location[1])
-      point2 = (wp[1].location[0], wp[1].location[1])
-      point3 = (wp[2].location[0], wp[2].location[1])
-
-        # Calculating length of all three sides
-      len_side_1 = round(math.dist(point1, point2), 3)
-      len_side_2 = round(math.dist(point2, point3), 3)
-      len_side_3 = round(math.dist(point1, point3), 3)
-
-      small_num = 2
-
-      if len_side_1 < small_num or len_side_2 < small_num or len_side_3 < small_num:
-          return self.max_radius
-
-        # sp is semi-perimeter
-      sp = (len_side_1 + len_side_2 + len_side_3) / 2
-
-        # Calculating area using Herons formula
-      area_squared = sp * (sp - len_side_1) * (sp - len_side_2) * (sp - len_side_3)
-      if area_squared < small_num:
-          return self.max_radius
-
-        # Calculating curvature using Menger curvature formula
-      radius = (len_side_1 * len_side_2 * len_side_3) / (4 * math.sqrt(area_squared))
-
-      return radius
-    def get_target_speed(self, radius: float, current_section: int):
-        """Returns a target speed based on the radius of the turn and the section it is in
-
-        Args:
-            radius (float): The calculated radius of the turn
-            current_section (int): The current section of the track the car is in
-
-        Returns:
-            float: The maximum speed the car can go around the corner at
-        """
-
-        mu = 2.75
-
-        if radius >= self.max_radius:
-            return self.max_speed
-
-        if current_section == 2:
-            mu = 3.35
-        if current_section == 3:
-            mu = 3.3
-        if current_section == 4:
-            mu = 2.85
-        if current_section == 6:
-            mu = 3.3
-        if current_section == 9:
-            mu = 2.1
-
-        target_speed = math.sqrt(mu*9.81*radius)
-        return(target_speed)
-
-
-
-  def get_next_interesting_waypoints(self, current_location, more_waypoints):
+    def get_next_interesting_waypoints(self, current_location, more_waypoints):
         """Returns a list of waypoints that are approximately as far as specified in intended_target_distance from the current location
 
         Args:
@@ -366,6 +370,72 @@ class ThrottleController:
         self.dprint("wp dist " + str(dist))
         return points
 
-  
+    def get_radius(self, wp: [roar_py_interface.RoarPyWaypoint]):
+        """Returns the radius of a curve given 3 waypoints using the Menger Curvature Formula
 
-  
+        Args:
+            wp ([roar_py_interface.RoarPyWaypoint]): A list of 3 RoarPyWaypoints
+
+        Returns:
+            float: The radius of the curve made by the 3 given waypoints
+        """
+
+        point1 = (wp[0].location[0], wp[0].location[1])
+        point2 = (wp[1].location[0], wp[1].location[1])
+        point3 = (wp[2].location[0], wp[2].location[1])
+
+        # Calculating length of all three sides
+        len_side_1 = round(math.dist(point1, point2), 3)
+        len_side_2 = round(math.dist(point2, point3), 3)
+        len_side_3 = round(math.dist(point1, point3), 3)
+
+        small_num = 2
+
+        if len_side_1 < small_num or len_side_2 < small_num or len_side_3 < small_num:
+            return self.max_radius
+
+        # sp is semi-perimeter
+        sp = (len_side_1 + len_side_2 + len_side_3) / 2
+
+        # Calculating area using Herons formula
+        area_squared = sp * (sp - len_side_1) * (sp - len_side_2) * (sp - len_side_3)
+        if area_squared < small_num:
+            return self.max_radius
+
+        # Calculating curvature using Menger curvature formula
+        radius = (len_side_1 * len_side_2 * len_side_3) / (4 * math.sqrt(area_squared))
+
+        return radius
+
+    def get_target_speed(self, radius: float, current_section: int):
+        """Returns a target speed based on the radius of the turn and the section it is in
+
+        Args:
+            radius (float): The calculated radius of the turn
+            current_section (int): The current section of the track the car is in
+
+        Returns:
+            float: The maximum speed the car can go around the corner at
+        """
+
+        mu = 2.75
+
+        if radius >= self.max_radius:
+            return self.max_speed
+
+        if current_section == 2:
+            mu = 3.35
+        if current_section == 3:
+            mu = 3.3
+        if current_section == 4:
+            mu = 2.85
+        if current_section == 6:
+            mu = 3.3
+        if current_section == 9:
+            mu = 2.1
+
+        target_speed = math.sqrt(mu * 9.81 * radius) * 3.6
+
+        return max(
+            20, min(target_speed, self.max_speed)
+        )  # clamp between 20 and max_speed
