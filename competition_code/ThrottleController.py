@@ -439,3 +439,32 @@ class ThrottleController:
         return max(
             20, min(target_speed, self.max_speed)
         )  # clamp between 20 and max_speed
+
+    def print_speed(
+        self, text: str, s1: float, s2: float, s3: float, s4: float, curr_s: float
+    ):
+        """
+        Prints debug speed values
+        """
+        self.dprint(
+            text
+            + " s1= "
+            + str(round(s1, 2))
+            + " s2= "
+            + str(round(s2, 2))
+            + " s3= "
+            + str(round(s3, 2))
+            + " s4= "
+            + str(round(s4, 2))
+            + " cspeed= "
+            + str(round(curr_s, 2))
+        )
+
+    # debug print
+    def dprint(self, text):
+        """
+        Prints debug text
+        """
+        if self.display_debug:
+            print(text)
+            self.debug_strings.append(text)
