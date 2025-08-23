@@ -2,7 +2,7 @@ import math
 import numpy as np
 
 class LatController:
-  def run(current_location, vehicle_orientation, waypoint):
+  def run(self, current_location, vehicle_orientation, waypoint):
     #calculates steering angle for the car
   
     #Find distance between vehicle and waypoint
