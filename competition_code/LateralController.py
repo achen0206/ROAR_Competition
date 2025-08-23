@@ -1,19 +1,42 @@
-import math
 import numpy as np
+import math
+
+
+def normalize_rad(rad: float):
+    return rad % (2 * np.pi)
+
 
 class LatController:
-  def run(self, current_location, vehicle_orientation, waypoint):
-    #calculates steering angle for the car
-  
-    #Find distance between vehicle and waypoint
-    dx = waypoint.location[0] - current_location[0]
-    dy = waypoint.location[1] - current_location[1]
-  
-    #Convert to local coordinates
-    local_x = dx*math.cos(-vehicle_orientation[2]) - dy*math.sin(-vehicle_orientation[2])
-    local_y = dy*math.sin(-vehicle_orientation[2]) + dx*math.cos(-vehicle_orientation[2])
+    def run(self, vehicle_location, vehicle_rotation, next_waypoint) -> float:
+        """
+        Calculates the steering command using the pure pursuit algorithm.
 
-    return (-1.5*np.arctan(4.7* 2*local_y/(np.linalg.norm(waypoint.location - current_location) ** 2)))
-  
-    
-  #Find algo to calculate steering_angle (Pure Pursuit)
+        Args:
+            vehicle_location (np.array): Current vehicle location [x, y].
+            vehicle_rotation (float): Current vehicle rotation (yaw) in radians.
+            next_waypoint (Waypoint): Next waypoint to track.
+
+        Returns:
+            steering_command (float): Steering command in radians.
+        """
+
+        # Calculate vector pointing from vehicle to next waypoint
+        waypoint_vector = np.array(next_waypoint.location) - np.array(vehicle_location)
+
+        # Project waypoint vector onto heading vector to find lookahead point
+        distance_to_waypoint = np.linalg.norm(waypoint_vector)
+        if distance_to_waypoint == 0:
+            return 0  # Prevent division by zero
+
+        waypoint_vector_normalized = waypoint_vector / distance_to_waypoint
+
+        # Calculate steering command
+        alpha = normalize_rad(vehicle_rotation[2]) - normalize_rad(
+            math.atan2(waypoint_vector_normalized[1], waypoint_vector_normalized[0])
+        )
+
+        steering_command = 1.5 * math.atan2(
+            2.0 * 4.7 * math.sin(alpha) / distance_to_waypoint, 1.0
+        )
+
+        return float(steering_command)
