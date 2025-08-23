@@ -5,7 +5,7 @@ from typing import List
 from matplotlib.backend_bases import MouseButton
 
 waypoints = roar_py_interface.RoarPyWaypoint.load_waypoint_list(
-    np.load("competition_code\\waypoints\\modifiedWaypoints2.npz")
+    np.load("waypoints\\waypoints.npz")
 )
 newWaypoints = []
 
