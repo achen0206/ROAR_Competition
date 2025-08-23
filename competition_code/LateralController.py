@@ -13,7 +13,7 @@ class LatController:
     local_x = dx*math.cos(-vehicle_orientation[2]) - dy*math.sin(-vehicle_orientation[2])
     local_y = dy*math.sin(-vehicle_orientation[2]) + dx*math.cos(-vehicle_orientation[2])
 
-    return (-1.5*np.arctan(4.7* 2*local_y/(np.linalg.norm(waypoint.location - vehicle_location) ** 2)))
+    return (-1.5*np.arctan(4.7* 2*local_y/(np.linalg.norm(waypoint.location - current_location) ** 2)))
   
     
   #Find algo to calculate steering_angle (Pure Pursuit)
