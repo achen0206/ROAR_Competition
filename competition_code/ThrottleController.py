@@ -424,7 +424,7 @@ class ThrottleController:
             return self.max_speed
 
         if current_section == 1:
-            mu = 3.00
+            mu = 2.75
         if current_section == 2:
             mu = 3.35
         if current_section == 3:
