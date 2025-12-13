@@ -428,13 +428,13 @@ class ThrottleController:
         if current_section == 2:
             mu = 3.35
         if current_section == 3:
-            mu = 3.4
+            mu = 3.3
         if current_section == 4:
             mu = 2.95
         if current_section == 6:
             mu = 3.3
         if current_section == 9:
-            mu = 2.1
+            mu = 2.2
 
         target_speed = math.sqrt(mu * 9.81 * radius) * 3.6
 
